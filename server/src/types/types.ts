@@ -7,7 +7,7 @@ export interface IUser {
     lastName: string,
     email: string,
     username: string,
-    user_type: "Admin" | "Employee"
+    user_type: "Admin" | "Sales User"
     password: string,
     refreshToken: string
 }
@@ -25,7 +25,7 @@ export interface AuthenticatedRequest extends Request{
         lastName: string;
         email: string;
         username: string;
-        user_type: "Admin" | "Employee";
+        user_type: "Admin" | "Sales User";
         refreshToken?: string;
     }
 }

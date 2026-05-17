@@ -35,7 +35,7 @@ const userSchema = new Schema<IUserDocument>({
     user_type: {
         type: String,
         required: true,
-        enum: ["Admin", "Employee"]
+        enum: ["Admin", "Sales User"]
     },
     password: {
         type: String,

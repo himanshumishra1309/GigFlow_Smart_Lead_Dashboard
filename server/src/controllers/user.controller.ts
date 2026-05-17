@@ -129,7 +129,7 @@ const getAllEmplyeeList = asyncHandler(async (req: Request, res: Response) => {
     const employees = await User.aggregate([
         {
             $match: {
-                user_type: "Employee"
+                user_type: "Sales User"
             }
         },
         {

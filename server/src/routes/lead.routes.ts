@@ -8,14 +8,14 @@ const router = express.Router()
 router.post(
     '/postLead', 
     verifyJWT, 
-    authorizeRoles("Admin", "Employee"), 
+    authorizeRoles("Admin", "Sales User"), 
     addLead
 );
 
 router.put(
     '/editLead', 
     verifyJWT, 
-    authorizeRoles("Admin", "Employee"), 
+    authorizeRoles("Admin", "Sales User"), 
     editLead
 );
 
@@ -29,14 +29,14 @@ router.delete(
 router.get(
     '/leadDetail/:leadId',
     verifyJWT,
-    authorizeRoles("Admin", "Employee"),
+    authorizeRoles("Admin", "Sales User"),
     getLeadDetail
 );
 
 router.get(
     '/leadList',
     verifyJWT,
-    authorizeRoles("Admin", "Employee"),
+    authorizeRoles("Admin", "Sales User"),
     getLeadList
 );
 

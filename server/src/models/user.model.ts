@@ -26,15 +26,16 @@ const userSchema = new Schema<IUserDocument>({
             message: "Invalid email format!",
         },
     },
-    status: {
+    username: {
         type: String,
         required: true,
-        enum: ["New", "Contacted", "Qualified", "Lost"]
+        lowercase: true,
+        unique: true,
     },
-    source: {
+    user_type: {
         type: String,
         required: true,
-        enum: ["Website", "Instagram", "Referral"]
+        enum: ["Admin", "Employee"]
     },
     password: {
         type: String,

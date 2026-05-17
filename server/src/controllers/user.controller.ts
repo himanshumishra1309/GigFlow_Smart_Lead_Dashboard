@@ -1,9 +1,10 @@
 import {User} from "../models/user.model"
 import { ObjectId } from "mongodb"
-import { ApiError } from "../utils/ApiError.js"
+import { ApiError } from "../utils/ApiError"
 import type { Request, Response } from "express";
-import { asyncHandler } from "../utils/asyncHandler.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
+import { asyncHandler } from "../utils/asyncHandler";
+import { ApiResponse } from "../utils/ApiResponse";
+import type { AuthenticatedRequest } from "../types/types";
 
 const generateAccessAndRefreshToken = async (userId: ObjectId) => {
     try {
@@ -22,19 +23,19 @@ const generateAccessAndRefreshToken = async (userId: ObjectId) => {
 }
 
 const registerUser = asyncHandler(async (req: Request, res: Response) => {
-    const {firstName, lastName, email, status, source, password} = req.body;
+    const {firstName, lastName, email, username, user_type, password} = req.body;
 
-    if([firstName, lastName, email, status, source, password].some((it)=> it.trim() === "")){
+    if([firstName, lastName, email, username, user_type, password].some((it)=> it.trim() === "")){
         throw new ApiError(400, "All fields are required");
     }
 
     const user = await User.create({
-        firstName, lastName, email, status, source, password
+        firstName, lastName, email, username, user_type, password
     })
 
     if(!user) throw new ApiError(500, "Error creating user");
 
-    const createdUser = User.findById(user._id).select("-password -refreshToken")
+    const createdUser = await User.findById(user._id).select("-password -refreshToken")
 
     return res.status(200).json(
         new ApiResponse(200, "User Registered Successfully", createdUser)
@@ -66,7 +67,7 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
 
     const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id);
 
-    const loggedInUser = User.findById(user._id).select("-password -refreshToken")
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
     const options = {
         httpOnly: true,
@@ -90,8 +91,9 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
 })
 
 const logoutUser = asyncHandler(async (req: Request, res: Response) => {
+    const rq = req as AuthenticatedRequest
     await User.findByIdAndUpdate(
-        req.user._id,
+        rq.user?._id,
         {
             $unset: {
                 refreshToken: 1
@@ -108,8 +110,8 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
     }
 
     return res.status(200)
-    .cookie("accessToken", options)
-    .cookie("refreshToken", options)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
     .json(
         new ApiResponse(
             200,
@@ -118,3 +120,5 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
         )
     )
 })
+
+export {registerUser, loginUser, logoutUser}

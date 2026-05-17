@@ -9,7 +9,7 @@ import type { AuthenticatedRequest } from "../types/types";
 const generateAccessAndRefreshToken = async (userId: ObjectId) => {
     try {
         if(!userId) throw new ApiError(400, "User Id was not received");
-        const user = User.findById(userId);
+        const user = await User.findById(userId);
         if(!user) throw new ApiError(404, "User not found");
         const accessToken = await User.generateAccessToken();
         const refreshToken = await User.generateAccessToken();

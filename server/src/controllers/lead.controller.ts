@@ -50,7 +50,7 @@ const editLead = asyncHandler(async(req: Request, res: Response) => {
         {
             new: true
         }
-    ).select("-password");
+    );
 
     if(!updatedData){
         throw new ApiError(500, "Unable to update lead data");
@@ -90,7 +90,7 @@ const getLeadDetail = asyncHandler(async (req: Request, res: Response) => {
         throw new ApiError(400, "Lead ID is invalid");
     }
 
-    const leadDetails = await Lead.findById(leadId).select("-password -refreshToken");
+    const leadDetails = await Lead.findById(leadId);
 
     if(!leadDetails){
         throw new ApiError(500, "Unabele to fetch the lead details");

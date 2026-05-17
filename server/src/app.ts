@@ -18,4 +18,10 @@ app.listen('/', () => {
     console.log("Healthy Server");
 })
 
+import userRouter from './routes/user.route'
+import leadRouter from './routes/lead.routes'
+
+app.use('/api/v1/user', userRouter)
+app.use('/api/v1/lead', leadRouter)
+
 export {app};

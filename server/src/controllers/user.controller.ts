@@ -5,6 +5,7 @@ import type { Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiResponse } from "../utils/ApiResponse";
 import type { AuthenticatedRequest } from "../types/types";
+import mongoose from "mongoose";
 
 const generateAccessAndRefreshToken = async (userId: ObjectId) => {
     try {
@@ -121,4 +122,65 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
     )
 })
 
-export {registerUser, loginUser, logoutUser}
+const getAllEmplyeeList = asyncHandler(async (req: Request, res: Response) => {
+    const page = parseInt(req.query.page as string);
+    const limit = parseInt(req.query.limit as string);
+    
+    const employees = await User.aggregate([
+        {
+            $match: {
+                user_type: "Employee"
+            }
+        },
+        {
+            $sort: {
+                firstName: 1
+            }
+        },
+        {
+            $facet: {
+                metadata: [{$count: 'totalCount'}],
+                data: [{$skip: (page*1)-limit}, {$limit: limit}]
+            }
+        }
+    ])
+
+    if(!employees){
+        throw new ApiError(400, "Unable to fetch list of employees")
+    }
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            "Fetched all employees",
+            {
+                employees,
+                totalCount: employees.length
+            }
+        )
+    )
+});
+
+const getUserDetails = asyncHandler(async (req: Request, res: Response)=>{
+    const id: string = req.params.id as string;
+
+    if(!mongoose.Types.ObjectId.isValid(id)){
+        throw new ApiError(400, "User Id invalid");
+    }
+
+    const user = await User.findById(id);
+
+    if(!user){
+        throw new ApiError(500, "Unable to get user data");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            "Fetched User Details",
+            user
+        )
+    )
+})
+
+export {registerUser, loginUser, logoutUser, getAllEmplyeeList, getUserDetails}

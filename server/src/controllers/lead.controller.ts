@@ -4,6 +4,8 @@ import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/asyncHandler";
 import type { Response, Request } from "express";
 import mongoose from "mongoose";
+import { Parser } from "json2csv";
+import { User } from "../models/user.model.js";
 
 const addLead = asyncHandler(async(req: Request, res: Response) => {
     const {firstName, lastName, email, status, source} = req.body;
@@ -108,25 +110,91 @@ const getLeadDetail = asyncHandler(async (req: Request, res: Response) => {
 const getLeadList = asyncHandler(async (req: Request, res: Response) => {
     const page: number = parseInt(req.query.page as string) || 1;
     const limit: number = parseInt(req.query.limit as string) || 10;
-    
-    const leads = await Lead.aggregate([{
-        $facet: {
-            metadata: [{$count: 'totalCount'}],
-            data: [{$skip: (page-1)*limit}, {$limit: limit}]
-        }
-    }]);
 
-    if(!leads){
+    const search = req.query.search as string;
+    const status = req.query.status as string;
+    const source = req.query.source as string;
+    const sort = req.query.sort as string;
+
+    const matchStage: any = {}
+
+    if(status) matchStage.status = status
+    if(source) matchStage.source = source
+
+    if(search){
+        matchStage.$or = [
+            { firstName: {$regex: search, $options: 'i'} },
+            { lastName: {$regex: search, $options: 'i'} },
+            { email: {$regex: search, $options: 'i'} },
+        ]
+    }
+
+    const sortStage: any = {};
+    if(sort === "Oldest"){
+        sortStage.createdAt = 1;
+    } else{
+        sortStage.createdAt = -1;
+    }
+    
+    const leads = await Lead.aggregate([
+        {$match: matchStage},
+        {$sort: sortStage},
+        {
+            $facet: {
+                metadata: [{$count: 'totalCount'}],
+                data: [{$skip: (page-1)*limit}, {$limit: limit}]
+            }
+        }
+    ]);
+
+    if (!leads || leads.length === 0) {
         throw new ApiError(500, "Unable to fetch leads");
     }
 
+    const responseData = {
+        leads: leads[0].data,
+        totalCount: leads[0].metadata[0]?.totalCount || 0,
+        page,
+        limit
+    };
+
     return res.status(200).json(
-        new ApiResponse(
-            200,
-            "Leads fetched successfully",
-            leads
-        )
-    )
+        new ApiResponse(200, "Leads fetched successfully", responseData)
+    );
 })
 
-export {addLead, editLead, deleteLead, getLeadDetail, getLeadList}
+const exportLeadsCSV = asyncHandler(async (req: Request, res: Response) => {
+    const search = req.query.search as string;
+    const source = req.query.source as string;
+    const status = req.query.status as string;
+
+    const matchStage: any = {};
+
+    if(source) matchStage.source = source;
+    if(status) matchStage.status = status;
+
+    if(search){
+        matchStage.$or = [
+            { firstName: { $regex: search, $options: 'i' } },
+            { lastName: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } },
+        ];
+    }
+
+    const leads = await Lead.find(matchStage).sort({createdAt: -1});
+
+    if(!leads || leads.length === 0){
+        throw new ApiError(404, "No lead with th given requirement found")
+    }
+
+    const fields = ['firstName', 'lastName', 'email', 'status', 'source', 'createdAt'];
+    
+    const json2csvParser = new Parser({fields});
+    const csv = json2csvParser.parse(leads)
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment('lead-export.csv');
+    return res.status(200).send(csv);
+})
+
+export {addLead, editLead, deleteLead, getLeadDetail, getLeadList, exportLeadsCSV}
